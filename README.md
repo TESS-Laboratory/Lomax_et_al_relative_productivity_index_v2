@@ -1,1 +1,1 @@
-# RPI_rangeland_monitoring
+# The Relative Productivity Index V2
