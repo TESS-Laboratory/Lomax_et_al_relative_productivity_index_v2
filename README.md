@@ -1,1 +1,1 @@
-# Lomax_et_al_relative_productivity_index_v2
+# The Relative Productivity Index V2

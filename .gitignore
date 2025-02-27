@@ -1,4 +1,43 @@
+<<<<<<< HEAD
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+=======
+# History files
+.Rhistory
+.Rapp.history
+
+# Session Data files
+.RData
+.RDataTmp
+
+# User-specific files
+.Ruserdata
+
+# RStudio files
+.Rproj.user/
+
+# knitr and R markdown default cache directories
+*_cache/
+/cache/
+
+# Temporary files created by R markdown
+*.utf8.md
+*.knit.md
+
+# R Environment Variables
+.Renviron
+
+# R profile
+.Rprofile
+
+# Data folders
+/data/
+
+# Results and figures
+/results/*
+
+# Script output files
+*.out
+>>>>>>> b5704689b9d5430351862863039148fa3e78348e
