@@ -42,5 +42,5 @@ dist_to_river_sa <- dist_to_river %>%
 
 names(dist_to_river_sa) <- "dist_to_river"
 
-writeRaster(dist_to_river_sa, paste0("data/processed/raster/dist_to_river_", MIN_ORDER, ".tif"),
+writeRaster(dist_to_river_sa, paste0("data/processed/raster/dist_to_river/dist_to_river_", MIN_ORDER, ".tif"),
             overwrite = TRUE)
