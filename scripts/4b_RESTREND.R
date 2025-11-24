@@ -95,7 +95,7 @@ fit_restrend <- function(gpp_rast, ppt_rast, tMean_rast) {
 tic()
 restrend_rast <- fit_restrend(gpp_rast = gpp, ppt_rast = precipitation, tMean_rast = tMean)
 
-writeRaster(restrend_rast, "data/processed/raster/restrend.tif", overwrite = TRUE)
+writeRaster(restrend_rast, "data/processed/raster/restrend/restrend.tif", overwrite = TRUE)
 x <- toc()
 
 pushoverr::pushover(paste0("RESTREND fit complete. ", x$callback_msg))

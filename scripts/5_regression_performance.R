@@ -139,14 +139,14 @@ ggsave(
 ## 6. Comparison with previous versions
 
 # Convert rasters to consistent data frames covering the same spatial extent
-rpi_rast <- rast("data/processed/raster/rpi_rast_sp.tif")
-rpi_rast_legacy <- rast("data/processed/raster/rpi_legacy.tif")
+rpi_rast_v2 <- rast("data/processed/raster/outputs/rpi_ea_v2.tif")
+rpi_rast_v1 <- rast("data/raw/raster/rpi_ea_v1.tif")
 
-rpi_rast_legacy_crop <- rpi_rast_legacy %>%
+rpi_rast_v1_crop <- rpi_rast_v1 %>%
   crop(rpi_rast[[1]], extend = TRUE, mask = TRUE)
 
-rpi_rast_crop <- rpi_rast[[1:nlyr(rpi_rast_legacy_crop)]] %>%
-  mask(rpi_rast_legacy_crop)
+rpi_rast_v2_crop <- rpi_rast[[1:nlyr(rpi_rast_v1_crop)]] %>%
+  mask(rpi_rast_v1_crop)
 
 # rpi_df <- rpi_rast_crop %>%
 #   as.data.frame(cells = TRUE) %>%
@@ -177,14 +177,14 @@ calc_performance <- function(truth, predicted, na.rm = FALSE) {
 
 # Calculate pixel-wise performance in explaining temporal extent
 
-gpp_actual <- subset(rpi_rast, str_detect(names(rpi_rast), "GPP"))
-gpp_pred <- subset(rpi_rast, str_detect(names(rpi_rast), regex("^gpp_predicted")))
+gpp_actual_v2 <- subset(rpi_rast_v2, str_detect(names(rpi_rast), "GPP"))
+gpp_pred_v2 <- subset(rpi_rast_v2, str_detect(names(rpi_rast), regex("^gpp_predicted")))
 
-gpp_actual_subset <- subset(rpi_rast_crop, str_detect(names(rpi_rast_crop), "GPP"))
-gpp_pred_subset <- subset(rpi_rast_crop, str_detect(names(rpi_rast_crop), regex("^gpp_predicted")))
+gpp_actual_v2_subset <- subset(rpi_rast_v2_crop, str_detect(names(rpi_rast_v2_crop), "GPP"))
+gpp_pred_v2_subset <- subset(rpi_rast_v2_crop, str_detect(names(rpi_rast_v2_crop), regex("^gpp_predicted")))
 
-gpp_actual_legacy <- subset(rpi_rast_legacy_crop, str_detect(names(rpi_rast_legacy_crop), "GPP"))
-gpp_pred_legacy <- subset(rpi_rast_legacy_crop, str_detect(names(rpi_rast_legacy_crop), regex("^gpp_predicted")))
+gpp_actual_v1 <- subset(rpi_rast_v1_crop, str_detect(names(rpi_rast_v1_crop), "GPP"))
+gpp_pred_v1 <- subset(rpi_rast_v1_crop, str_detect(names(rpi_rast_v1_crop), regex("^gpp_predicted")))
 
 # (Load RESTREND residuals to compare)
 restrend_old <- rast("data/processed/raster/restrend_resids_old.tif") %>%

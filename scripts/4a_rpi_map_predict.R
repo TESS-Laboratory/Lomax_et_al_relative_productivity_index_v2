@@ -12,7 +12,7 @@ source("scripts/load.R")
 
 YEARS <- 2000:2022
 MIN_STREAM_ORDER <- 4
-THREADS <- 16
+CORES <- availableCores() / 2
 
 # Load raster data
 static_covariates <- rast("data/raw/raster/covariate_maps/staticVars.tif")
@@ -24,7 +24,6 @@ names(dist_to_river) <- "dist_to_river"
 
 # Load models
 
-# qrf_model_spt <- read_rds("data/processed/rds/rf_tuned_spt.rds")
 qrf_model_sp <- read_rds("data/processed/rds/rf_tuned_sp.rds")
 
 ## 2. Prepare additional precipitation covariates ----
@@ -56,12 +55,12 @@ annual_predictions_sp <- YEARS %>%
       static_vars = static_covariates_all,
       dynamic_vars = dynamic_covariates_all,
       model = qrf_model_sp$learner$model,
-      threads = THREADS) %>%
+      threads = CORES) %>%
   rast()
 
 toc()
 
-writeRaster(annual_predictions_sp, "data/processed/raster/rpi_rast_sp.tif",
+writeRaster(annual_predictions_sp, "data/processed/raster/outputs/rpi_ea_v2.tif",
             overwrite = TRUE)
 
 pushoverr::pushover("RPI raster written to disk")
