@@ -9,9 +9,9 @@
 
 source("scripts/load.R")
 
-# Parallelisation
-nc <- availableCores() / 2
-plan(multicore, workers = nc)
+# Set up parallelisation
+CORES <- availableCores() / 2
+plan(multicore, workers = CORES)
 
 # Parameters
 
@@ -72,7 +72,7 @@ var_sample_final <- var_sample_long %>%
   ) %>%
   ungroup()
 
-write_csv(var_sample_final, "data/processed/csv/var_sample_final2.csv")
+write_csv(var_sample_final, "data/processed/csv/var_sample_final.csv")
 
 ## 5. Set up quantile regression task using mlr3 ----
 
@@ -227,5 +227,5 @@ write_rds(rf_tuned_sp, "data/processed/rds/rf_tuned_sp2.rds")
 rm(rf_tuned_sp)
 gc()
 
-pushoverr::pushover("Tuning complete: Spatial block CV")
+# pushoverr::pushover("Tuning complete: Spatial block CV")
 
