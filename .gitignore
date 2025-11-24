@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-.Rproj.user
-.Rhistory
-.RData
-.Ruserdata
-=======
 # History files
 .Rhistory
 .Rapp.history
@@ -40,4 +34,3 @@
 
 # Script output files
 *.out
->>>>>>> b5704689b9d5430351862863039148fa3e78348e
