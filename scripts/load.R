@@ -7,9 +7,19 @@ load <- function() {
   
   # read the functions from R directory
   message("Loading functions...")
-  function_files <- list.files("R", pattern = ".R$", full.names = TRUE)
+  function_files <- list.files("scripts/functions", pattern = ".R$", full.names = TRUE)
   walk(function_files, source)
   message("Complete")
+  
+  # Generate folder structure
+  dir.create("data/raw", showWarnings = FALSE, recursive = TRUE)
+  dir.create("data/processed/csv", showWarnings = FALSE, recursive = TRUE)
+  dir.create("data/processed/raster/merit", showWarnings = FALSE, recursive = TRUE)
+  dir.create("data/processed/raster/dist_to_river", showWarnings = FALSE, recursive = TRUE)
+  dir.create("data/processed/raster/merit", showWarnings = FALSE, recursive = TRUE)
+  dir.create("data/processed/raster/rpi", showWarnings = FALSE, recursive = TRUE)
+  dir.create("data/processed/rds", showWarnings = FALSE, recursive = TRUE)
+  dir.create("data/processed/tmp", showWarnings = FALSE, recursive = TRUE)
   
   # set global options
   terra::terraOptions(
