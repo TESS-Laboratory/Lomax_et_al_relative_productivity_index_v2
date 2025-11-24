@@ -17,7 +17,8 @@ rf_model_sp <- read_rds("data/processed/rds/rf_tuned_sp.rds")
 
 # Country polygons for maps
 
-ke_tz <- st_read("data/raw/vector/kenya_tanzania.geojson")
+ke_tz <- st_read("data/raw/vector/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp") %>%
+  filter(NAME %in% c("Kenya", "Tanzania"))
 
 ## 3. Calculate model performance metrics ----
 
