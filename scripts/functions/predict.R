@@ -1,4 +1,4 @@
-## Helper functions for predicting from models
+## Helper functions for predicting rasters from models
 
 #' @title Predict to annual raster
 #' @description Predicts expected and potential GPP (mean and 0.9 quantile)
