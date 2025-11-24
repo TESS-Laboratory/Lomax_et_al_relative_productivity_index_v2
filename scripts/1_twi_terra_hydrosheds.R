@@ -5,8 +5,6 @@
 
 source("scripts/load.R")
 
-tmap_mode("view")
-
 wbt_init()
 
 # Load data and join
@@ -48,16 +46,13 @@ wbt_wetness_index(
   output = "data/processed/raster/merit/merit_twi_fd8.tif"
 )
 
-twi_fd8 <- rast("data/processed/raster/merit/merit_twi_fd8.tif")
-
-plot(twi_fd8, xlim = c(30, 30.5), ylim = c(-5, -4.5))
-
-# Visualise
-tmap_options(raster.max.cells = 7e6)
-tm_shape(twi_fd8) +
-  tm_raster(
-    col.scale = tm_scale_continuous(
-      limits = c(0, 25),
-      outliers.trunc = c(TRUE, TRUE),
-      values = "viridis")
-  )
+# # Visualise
+# twi_fd8 <- rast("data/processed/raster/merit/merit_twi_fd8.tif")
+# tmap_options(raster.max.cells = 7e6)
+# tm_shape(twi_fd8) +
+#   tm_raster(
+#     col.scale = tm_scale_continuous(
+#       limits = c(0, 25),
+#       outliers.trunc = c(TRUE, TRUE),
+#       values = "viridis")
+#   )
