@@ -10,7 +10,7 @@
 source("scripts/load.R")
 
 # Set up parallelisation
-CORES <- availableCores() / 2
+CORES <- availableCores() / 4
 plan(multicore, workers = CORES)
 
 # Parameters
@@ -32,7 +32,7 @@ dynamic_covariates <- read_annual_rasters(YEARS, "data/raw/raster/covariate_maps
     threads = TRUE, 
     filename = "data/processed/raster/dynamic_covariates.tif",
     overwrite = TRUE)  # Need to resample because Google Earth Engine...
-message("Complete")
+message("Covariate processing complete")
 
 dist_to_river <- rast(paste0("data/processed/raster/dist_to_river/dist_to_river_", MIN_STREAM_ORDER, ".tif"))
 
@@ -44,6 +44,7 @@ all_vars <- c(static_covariates, dist_to_river, twi, dynamic_covariates)
 
 ## 3. Generate random sample of training points ----
 
+message("Generating sample points")
 var_df <- as.data.frame(all_vars, na.rm = TRUE, cells = TRUE, xy = TRUE)
 
 set.seed(SEED)
@@ -56,8 +57,7 @@ var_sample_long <- var_df %>%
   mutate(year = as.numeric(year)) %>%
   pivot_wider(names_from = "var", values_from = "value")
 
-message("Grid cell sample complete")
-pushoverr::pushover("Grid cell sample complete")
+message("Sample complete")
 
 ## 4. Additional variable processing ----
 # Add PPT variables
@@ -122,6 +122,7 @@ task_gpp <- as_task_regr_st(
 task_gpp$set_col_roles("cell", roles = "space")
 task_gpp$set_col_roles("year", roles = "time")
 
+message("Writing task to regr_task_gpp.rds")
 write_rds(task_gpp, "data/processed/rds/regr_task_gpp.rds")
 
 # Create resampling strategy
@@ -222,7 +223,7 @@ tic()
 rf_tuned_sp <-at_sp$train(task_gpp_sp)
 toc()
 
-write_rds(rf_tuned_sp, "data/processed/rds/rf_tuned_sp2.rds")
+write_rds(rf_tuned_sp, "data/processed/rds/rf_tuned_sp.rds")
 
 rm(rf_tuned_sp)
 gc()

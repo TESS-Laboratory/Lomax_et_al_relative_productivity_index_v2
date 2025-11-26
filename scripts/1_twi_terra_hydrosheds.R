@@ -20,7 +20,7 @@ writeRaster(merit_dem_reproj, "data/processed/raster/merit/meritDemReproj.tif",
 
 # Save slope as separate layer for Whitebox processing
 
-writeRaster(covariates$slope, "data/processed/raster/slope.tif",
+writeRaster(covariates$slope, "data/processed/raster/merit/slope.tif",
             overwrite = TRUE)
 
 # Calculate flow accumulation (Freeman D8) algorithm and mask to study area
