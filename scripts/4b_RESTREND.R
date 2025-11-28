@@ -9,19 +9,19 @@
 
 source("scripts/load.R")
 
-YEARS <- 2000:2022
+YEARS <- 2000:2018
 
 # nc <- availableCores() / 4
 # 
 # plan(multisession, workers = nc)
 
-# Load RPI data and extract analysis years
+# Load RPI data for analysis years
 rpi_rast <- rast("data/processed/raster/outputs/rpi_rast_v2.tif")
 
 gpp <- subset(rpi_rast, str_detect(names(rpi_rast), "GPP"))
 gpp_years <- subset(gpp, str_detect(names(gpp), paste(YEARS, collapse = "|")))
 
-# Load ppt and T predictors
+# Load ppt and T predictors for analysis years
 
 dynamic_covariates <- rast("data/processed/raster/dynamic_covariates.tif") %>%
   crop(rpi_rast[[1]], mask = TRUE)
@@ -69,8 +69,6 @@ restrend_rast <- terra::app(combined_raster, calc_restrend_resids, n_layers = nl
 x <- toc()
 
 names(restrend_rast) <- paste0("resid.", YEARS)
-
-pushoverr::pushover(paste0("RESTREND fit complete. ", x$callback_msg))
 
 writeRaster(restrend_rast, "data/processed/raster/outputs/restrend.tif", overwrite = TRUE)
 
