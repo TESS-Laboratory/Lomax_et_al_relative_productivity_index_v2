@@ -20,6 +20,7 @@ load <- function() {
   dir.create("data/processed/raster/rpi", showWarnings = FALSE, recursive = TRUE)
   dir.create("data/processed/rds", showWarnings = FALSE, recursive = TRUE)
   dir.create("data/processed/tmp", showWarnings = FALSE, recursive = TRUE)
+  dir.create("results/figures", showWarnings = FALSE, recursive = TRUE)
   
   # set global options
   terra::terraOptions(
