@@ -141,104 +141,88 @@ ggsave(
 ## 6. Spatial comparison with previous versions ----
 
 # Load v1 and v2 RPI rasters and crop/mask to consistent spatial extent
-rpi_rast_v2 <- rast("data/processed/raster/outputs/rpi_ea_v2.tif")
-rpi_rast_v1 <- rast("data/raw/raster/rpi_ea_v1.tif")
+rpi_rast_v2 <- rast("data/processed/raster/outputs/rpi_rast_v2.tif")
+rpi_rast_v1 <- rast("data/raw/raster/rpi_rast_v1.tif")
 
 rpi_rast_v1_crop <- rpi_rast_v1 %>%
-  crop(rpi_rast[[1]], extend = TRUE, mask = TRUE)
+  crop(rpi_rast_v2[[1]], extend = TRUE, mask = TRUE)
 
-rpi_rast_v2_crop <- rpi_rast[[1:nlyr(rpi_rast_v1_crop)]] %>%
-  mask(rpi_rast_v1_crop)
+rpi_rast_v2_crop <- rpi_rast_v2 %>%
+  mask(rpi_rast_v1_crop[[1]]) %>%
+  subset(names(rpi_rast_v2)[names(rpi_rast_v2) %in% names(rpi_rast_v1)])
 
-# rpi_df <- rpi_rast_crop %>%
+# # Calculate performance across shared pixel-year combinations
+# 
+# rpi_v2_df <- rpi_rast_v2_crop %>%
 #   as.data.frame(cells = TRUE) %>%
 #   tidy_annual_vars() %>%
 #   drop_na()
 # 
-# rpi_legacy_df <- rpi_rast_legacy_crop %>%
+# rpi_v1_df <- rpi_rast_v1_crop %>%
 #   as.data.frame(cells = TRUE) %>%
 #   tidy_annual_vars() %>%
 #   drop_na()
-
-# perf_full <- calc_performance(rpi_df$GPP, rpi_df$gpp_predicted)
-# perf_legacy <- calc_performance(rpi_legacy_df$GPP, rpi_legacy_df$gpp_predicted)
+# 
+# perf_v2 <- calc_performance(rpi_v2_df$GPP, rpi_v2_df$gpp_predicted)
+# perf_v1 <- calc_performance(rpi_v1_df$GPP, rpi_v1_df$gpp_predicted)
 
 # Calculate pixel-wise performance in explaining temporal extent
 
-gpp_actual_v2 <- subset(rpi_rast_v2, str_detect(names(rpi_rast), "GPP"))
-gpp_pred_v2 <- subset(rpi_rast_v2, str_detect(names(rpi_rast), regex("^gpp_predicted")))
+gpp_actual_v2 <- subset(rpi_rast_v2_crop, str_detect(names(rpi_rast_v2_crop), "GPP"))
+gpp_pred_v2 <- subset(rpi_rast_v2_crop, str_detect(names(rpi_rast_v2_crop), regex("^gpp_predicted")))
 
-gpp_actual_v2_subset <- subset(rpi_rast_v2_crop, str_detect(names(rpi_rast_v2_crop), "GPP"))
-gpp_pred_v2_subset <- subset(rpi_rast_v2_crop, str_detect(names(rpi_rast_v2_crop), regex("^gpp_predicted")))
+# gpp_actual_v2_subset <- subset(rpi_rast_v2_crop, str_detect(names(rpi_rast_v2_crop), "GPP"))
+# gpp_pred_v2_subset <- subset(rpi_rast_v2_crop, str_detect(names(rpi_rast_v2_crop), regex("^gpp_predicted")))
 
 gpp_actual_v1 <- subset(rpi_rast_v1_crop, str_detect(names(rpi_rast_v1_crop), "GPP"))
 gpp_pred_v1 <- subset(rpi_rast_v1_crop, str_detect(names(rpi_rast_v1_crop), regex("^gpp_predicted")))
 
-# (Load RESTREND residuals to compare)
-# restrend_old <- rast("data/processed/raster/restrend_resids_old.tif") %>%
-#   crop(rpi_rast[[1]], mask = TRUE, extend = TRUE)
-# restrend_old_resids <- subset(restrend_old, str_detect(names(restrend_old), "resid"))
-# restrend_old_preds <- gpp_actual_legacy - restrend_old_resids
+# Load RESTREND raster for comparison
+restrend <- rast("data/processed/raster/outputs/restrend.tif")
+restrend_crop <- crop(restrend, gpp_actual_v2[[1]], mask = TRUE)[[1:nlyr(gpp_actual_v2)]]
+restrend_preds <- gpp_actual_v2 - restrend_crop
+names(restrend_preds) <- str_replace(names(restrend_resids), "resid", "pred")
 
-restrend_new <- rast("data/processed/raster/restrend.tif")
-restrend_new_resids <- subset(restrend_new, str_detect(names(restrend_new), "resid"))
-restrend_new_preds <- gpp_actual_v2 - restrend_new_resids
-
-perf_new_full_temporal <- calc_performance_raster(gpp_actual_v2, gpp_pred_v2)
-perf_new_subset_temporal <- calc_performance_raster(gpp_actual_v2_subset, gpp_pred_v2_subset)
+perf_v2_temporal <- calc_performance_raster(gpp_actual_v2, gpp_pred_v2)
 perf_v1_temporal <- calc_performance_raster(gpp_actual_v1, gpp_pred_v1)
-perf_restrend_new_temporal <- calc_performance_raster(gpp_actual, restrend_new_preds)
-
-writeRaster(perf_new_full_temporal,
-            "data/processed/raster/temporal_performance_full_new.tif",
-            overwrite = TRUE)
-writeRaster(perf_new_subset_temporal,
-            "data/processed/raster/temporal_performance_new.tif",
-            overwrite = TRUE)
-writeRaster(perf_legacy_temporal,
-            "data/processed/raster/temporal_performance_old.tif",
-            overwrite = TRUE)
-writeRaster(perf_restrend_old_temporal,
-            "data/processed/raster/temporal_performance_restrend_old.tif",
-            overwrite = TRUE)
-# writeRaster(perf_restrend_new_temporal,
-#             "data/processed/raster/temporal_performance_restrend_new.tif",
-#             overwrite = TRUE)
+perf_restrend_temporal <- calc_performance_raster(gpp_actual_v2, restrend_preds)
 
 
-perf_new_full_temporal <- rast("data/processed/raster/temporal_performance_full_new.tif")
-perf_new_subset_temporal <- rast("data/processed/raster/temporal_performance_new.tif")
-perf_legacy_temporal <- rast("data/processed/raster/temporal_performance_old.tif")
-perf_restrend_old_temporal <- rast("data/processed/raster/temporal_performance_restrend_old.tif")
-# perf_restrend_new_temporal <- rast("data/processed/raster/temporal_performance_restrend_new.tif")
+writeRaster(perf_v2_temporal,
+            "data/processed/raster/performance/temporal_performance_v2.tif",
+            overwrite = TRUE)
+writeRaster(perf_v2_temporal,
+            "data/processed/raster/performance/temporal_performance_old.tif",
+            overwrite = TRUE)
+writeRaster(perf_restrend_temporal,
+            "data/processed/raster/performance/temporal_performance_restrend.tif",
+            overwrite = TRUE)
+
+# perf_v2_temporal <- rast("data/processed/raster/temporal_performance_v2.tif")
+# perf_v1_temporal <- rast("data/processed/raster/temporal_performancev_v1.tif")
+# perf_restrend_temporal <- rast("data/processed/raster/temporal_performance_restrend.tif")
 
 # Plot performance metrics
 
-performance_df_old <- as.data.frame(perf_new_subset_temporal, cells = TRUE) %>%
-  rename_with(~ paste0(.x, ".new_subset"), -cell) %>%
-  left_join(as.data.frame(perf_legacy_temporal, cells = TRUE) %>% rename_with(~paste0(.x, ".old"), -cell)) %>%
+performance_df <- as.data.frame(perf_v2_temporal, cells = TRUE) %>%
+  rename_with(~ paste0(.x, ".v2"), -cell) %>%
+  left_join(as.data.frame(perf_v1_temporal, cells = TRUE) %>% rename_with(~paste0(.x, ".v1"), -cell)) %>%
+  left_join(as.data.frame(perf_restrend_temporal, cells = TRUE) %>% rename_with(~paste0(.x, ".restrend"), -cell)) %>%
   pivot_longer(-cell) %>%
   separate_wider_delim(name, ".", names = c("measure", "version")) %>%
   drop_na()
 
-# performance_df_restrend <- as.data.frame(perf_new_full_temporal, cells = TRUE) %>%
-#   rename_with(~ paste0(.x, ".new_full"), -cell) %>%
-#   left_join(as.data.frame(perf_restrend_new_temporal, cells = TRUE) %>% rename_with(~paste0(.x, ".restrend"), -cell)) %>%
-#   pivot_longer(-cell) %>%
-#   separate_wider_delim(name, ".", names = c("measure", "version")) %>%
-#   drop_na()
-
 measure_labels <- as_labeller(c(mae = "Mean~Absolute~Error~(g~C~m^-2~yr^-1)", rmse = "RMSE", rsq = "R^2"), label_parsed)
 
-temporal_performance_hist <- performance_df_old %>%
+temporal_performance_hist <- performance_df %>%
   filter(measure != "rmse") %>%
-  mutate(version = ordered(version, levels = c("old", "new_subset"))) %>%
+  mutate(version = ordered(version, levels = c("v1", "v2", "restrend"))) %>%
   arrange(version) %>%
   ggplot(aes(x = value, fill = version)) +
   geom_density(alpha = 0.6, kernel = "rectangular") +
   facet_wrap(~measure, ncol = 1, nrow = 3, scales = "free", labeller = measure_labels) +
   theme_bw() +
-  scale_fill_brewer(palette = "Set1", labels = c("RPI v1", "RPI v2")) +
+  scale_fill_brewer(palette = "Set1", labels = c("RPI v1", "RPI v2", "RESTREND")) +
   ggh4x::facetted_pos_scales(x = list(
     measure == "mae" ~ scale_x_continuous(limits = c(0, 1500)),
     measure == "rmse" ~ scale_x_continuous(limits = c(0, 1500)),
@@ -274,17 +258,14 @@ ggsave("results/figures/rpi_version_performance_hist.png",
 
 # Calculate overall performance in explaining spatial patterns in mean GPP
 
-gpp_actual_mean <- mean(gpp_actual)
-gpp_pred_mean <- mean(gpp_pred)
+gpp_actual_v2_mean <- mean(gpp_actual_v2)
+gpp_pred_v2_mean <- mean(gpp_pred_v2)
 
-gpp_actual_subset_mean <- mean(gpp_actual_subset)
-gpp_pred_subset_mean <- mean(gpp_pred_subset)
+gpp_actual_v1_mean <- mean(gpp_actual_v1)
+gpp_pred_v1_mean <- mean(gpp_pred_v1)
 
-gpp_actual_legacy_mean <- mean(gpp_actual_legacy)
-gpp_pred_legacy_mean <- mean(gpp_pred_legacy)
-
-spatial_performance_new <- calc_performance(values(gpp_actual_subset_mean), values(gpp_pred_subset_mean), na.rm = TRUE)
-spatial_performance_old <- calc_performance(values(gpp_actual_legacy_mean), values(gpp_pred_legacy_mean), na.rm = TRUE)
+spatial_performance_v2 <- calc_performance(values(gpp_actual_v2_mean), values(gpp_pred_v2_mean), na.rm = TRUE)
+spatial_performance_v1 <- calc_performance(values(gpp_actual_v1_mean), values(gpp_pred_v1_mean), na.rm = TRUE)
 
 
 # Maps of performance by pixel
@@ -294,42 +275,8 @@ fill <- tm_shape(ke_tz, is.main = FALSE) +
 borders <- tm_shape(ke_tz) +
   tm_borders(col = "black")
 
-# rpi_old_mae_map <- fill +
-#   tm_shape(perf_legacy_temporal$mae, is.main = TRUE) +
-#   tm_raster(
-#     col.scale = tm_scale_continuous(
-#       limits = c(0, 1500),
-#       values = ("oranges"),
-#       outliers.trunc = c(TRUE, TRUE)
-#     ),
-#     col.legend = tm_legend(
-#       title = "MAE (g C m-2 yr-1)",
-#       reverse = TRUE,
-#       frame = FALSE
-#     )
-#   ) +
-#   borders +
-#   tm_layout(frame = FALSE)
-# 
-# rpi_new_mae_map <- fill +
-#   tm_shape(perf_new_subset_temporal$mae, is.main = TRUE) +
-#   tm_raster(
-#     col.scale = tm_scale_continuous(
-#       limits = c(0, 1500),
-#       values = ("oranges"),
-#       outliers.trunc = c(TRUE, TRUE)
-#     ),
-#     col.legend = tm_legend(
-#       title = "MAE (g C m-2 yr-1)",
-#       reverse = TRUE,
-#       frame = FALSE
-#     )
-#   ) +
-#   borders +
-#   tm_layout(frame = FALSE)
-
-rpi_best_mae <- which.min(c(perf_legacy_temporal$mae, perf_new_subset_temporal$mae))
-rpi_best_rsq <- which.max(c(perf_legacy_temporal$rsq, perf_new_subset_temporal$rsq))
+best_mae <- which.min(c(perf_v1_temporal$mae, perf_v2_temporal$mae, perf_restrend_temporal$mae))
+best_rsq <- which.max(c(perf_v1_temporal$rsq, perf_v2_temporal$rsq, perf_restrend_temporal$rsq))
 
 generate_performance_map <- function(performance_rast, metric, palette) {
   # Prep data
@@ -390,18 +337,20 @@ generate_performance_map <- function(performance_rast, metric, palette) {
   map
 }
 
-rpi_old_mae_map <- generate_performance_map(perf_legacy_temporal, "mae", "or_rd")
-rpi_new_mae_map <- generate_performance_map(perf_new_subset_temporal, "mae", "or_rd")
-rpi_old_rsq_map <- generate_performance_map(perf_legacy_temporal, "rsq", "viridis")
-rpi_new_rsq_map <- generate_performance_map(perf_new_subset_temporal, "rsq", "viridis")
+rpi_v1_mae_map <- generate_performance_map(perf_v1_temporal, "mae", "or_rd")
+rpi_v2_mae_map <- generate_performance_map(perf_v2_temporal, "mae", "or_rd")
+restrend_mae_map <- generate_performance_map(perf_restrend_temporal, "mae", "or_rd")
+rpi_v1_rsq_map <- generate_performance_map(perf_v1_temporal, "rsq", "viridis")
+rpi_v2_rsq_map <- generate_performance_map(perf_v2_temporal, "rsq", "viridis")
+restrend_rsq_map <- generate_performance_map(perf_restrend_temporal, "rsq", "or_rd")
 
 # Plot differences in performance between two methods
 
 rpi_mae_diff_map <- fill +
-  tm_shape(perf_legacy_temporal$mae - perf_new_subset_temporal$mae, is.main = TRUE) +
+  tm_shape(perf_v2_temporal$mae - perf_v1_temporal$mae, is.main = TRUE) +
   tm_raster(
     col.scale = tm_scale_continuous(
-      limits = c(-300, 300), values = "pu_or", midpoint = 0, outliers.trunc = c(TRUE, TRUE)
+      limits = c(-300, 300), values = "-pu_or", midpoint = 0, outliers.trunc = c(TRUE, TRUE)
     ),
     col.legend = tm_legend(
       reverse = TRUE, title = expression(atop("MAE difference", (g~C~m^-2~yr^-1))), frame = FALSE
@@ -412,7 +361,7 @@ rpi_mae_diff_map <- fill +
   
 
 rpi_rsq_diff_map <- fill +
-  tm_shape(perf_new_subset_temporal$rsq - perf_legacy_temporal$rsq, is.main = TRUE) +
+  tm_shape(perf_v2_temporal$rsq - perf_v1_temporal$rsq, is.main = TRUE) +
   tm_raster(
     col.scale = tm_scale_continuous(
       limits = c(-0.75, 0.75), values = "pu_or", midpoint = 0, outliers.trunc = c(TRUE, TRUE)
@@ -424,46 +373,89 @@ rpi_rsq_diff_map <- fill +
   borders +
   tm_layout(frame = FALSE, asp = 3/4)
 
+# Best method maps
+
+best_mae_map <- fill +
+  tm_shape(best_mae) +
+  tm_raster(
+    col.scale = tm_scale_discrete(
+      ticks = c(1,2,3),
+      values = "paired",
+      labels = c("RPI v1", "RPI v2", "RESTREND")
+    ),
+    col.legend = tm_legend(
+      title = "Lowest MAE",
+      frame = FALSE
+    )
+  ) +
+  borders +
+  tm_layout(frame = FALSE, asp = 3/4)
+
+best_rsq_map <- fill +
+  tm_shape(best_rsq) +
+  tm_raster(
+    col.scale = tm_scale_discrete(
+      ticks = c(1,2,3),
+      values = "paired",
+      labels = c("RPI v1", "RPI v2", "RESTREND")
+    ),
+    col.legend = tm_legend(
+      title = expression("Highest"~R^2),
+      frame = FALSE
+    )
+  ) +
+  borders +
+  tm_layout(frame = FALSE, asp = 3/4)
+
+
 # Save
-tmap_save(rpi_old_mae_map, "results/figures/rpi_old_mae_map.png",
+tmap_save(rpi_v1_mae_map, "results/figures/rpi_v1_mae_map.png",
           width = 12, height = 12, units = "cm", dpi = 300)
-tmap_save(rpi_new_mae_map, "results/figures/rpi_new_mae_map.png",
+tmap_save(rpi_v2_mae_map, "results/figures/rpi_v2_mae_map.png",
           width = 12, height = 12, units = "cm", dpi = 300)
-tmap_save(rpi_old_rsq_map, "results/figures/rpi_old_rsq_map.png",
+tmap_save(restrend_mae_map, "results/figures/restrend_mae_map.png",
           width = 12, height = 12, units = "cm", dpi = 300)
-tmap_save(rpi_new_rsq_map, "results/figures/rpi_new_rsq_map.png",
+tmap_save(rpi_v1_rsq_map, "results/figures/rpi_v1_rsq_map.png",
+          width = 12, height = 12, units = "cm", dpi = 300)
+tmap_save(rpi_v2_rsq_map, "results/figures/rpi_v2_rsq_map.png",
+          width = 12, height = 12, units = "cm", dpi = 300)
+tmap_save(restrend_rsq_map, "results/figures/restrend_rsq_map.png",
           width = 12, height = 12, units = "cm", dpi = 300)
 tmap_save(rpi_mae_diff_map, "results/figures/rpi_mae_diff_map.png",
           width = 12, height = 12, units = "cm", dpi = 300)
 tmap_save(rpi_rsq_diff_map, "results/figures/rpi_rsq_diff_map.png",
           width = 12, height = 12, units = "cm", dpi = 300)
+tmap_save(best_mae_map, "results/figures/best_mae_map.png",
+          width = 12, height = 12, units = "cm", dpi = 300)
+tmap_save(best_rsq_map, "results/figures/best_rsq_map.png",
+          width = 12, height = 12, units = "cm", dpi = 300)
 
 ## Histograms
 
-temporal_performance_hist_mae <- performance_df_old %>%
+temporal_performance_hist_mae <- performance_df %>%
   filter(measure == "mae") %>%
-  mutate(version = ordered(version, levels = c("old", "new_subset"))) %>%
+  mutate(version = ordered(version, levels = c("restrend", "v1", "v2"))) %>%
   arrange(version) %>%
   ggplot(aes(x = value, fill = version)) +
-  geom_density(alpha = 0.5, kernel = "rectangular") +
+  geom_density(alpha = 0.4, kernel = "rectangular") +
   # facet_wrap(~measure, ncol = 1, nrow = 3, scales = "free", labeller = measure_labels) +
   theme_classic() +
-  scale_fill_manual(values = c("orange3", "purple3"), labels = c("RPI v1", "RPI v2")) +
-  # scale_fill_brewer(palette = "Set1", labels = c("RPI v1", "RPI v2")) +
+  # scale_fill_manual(values = c("orange3", "purple3"), labels = c("RPI v1", "RPI v2", "RESTREND")) +
+  scale_fill_brewer(palette = "Dark2", labels = c("RESTREND", "RPI v1", "RPI v2")) +
   coord_cartesian(xlim = c(0, 1500)) +
   geom_vline(xintercept = 0, colour = "grey10") +
-  labs(x = expression(MAE~(g~C~m^-2~yr^-1~)), y = "", fill = "Version")
+  labs(x = expression(MAE~"("~g~C~m^-2~yr^-1~")"), y = "", fill = "Version")
 
-temporal_performance_hist_rsq <- performance_df_old %>%
+temporal_performance_hist_rsq <- performance_df %>%
   filter(measure == "rsq") %>%
-  mutate(version = ordered(version, levels = c("old", "new_subset"))) %>%
+  mutate(version = ordered(version, levels = c("restrend", "v1", "v2"))) %>%
   arrange(version) %>%
   ggplot(aes(x = value, fill = version)) +
-  geom_density(alpha = 0.5, kernel = "rectangular") +
+  geom_density(alpha = 0.4, kernel = "rectangular") +
   # facet_wrap(~measure, ncol = 1, nrow = 3, scales = "free", labeller = measure_labels) +
   theme_classic() +
-  scale_fill_manual(values = c("orange3", "purple3"), labels = c("RPI v1", "RPI v2")) +
-  # scale_fill_brewer(palette = "Set1", labels = c("RPI v1", "RPI v2")) +
+  # scale_fill_manual(values = c("orange3", "purple3"), labels = c("RPI v1", "RPI v2", "RESTREND")) +
+  scale_fill_brewer(palette = "Dark2", labels = c("RESTREND", "RPI v1", "RPI v2")) +
   coord_cartesian(xlim = c(-0.5, 1)) +
   geom_vline(xintercept = 0, colour = "grey10") +
   labs(x = expression(R^2), y = "", fill = "Version")
@@ -477,12 +469,12 @@ ggsave("results/figures/perf_hist_rsq.png", temporal_performance_hist_rsq,
 
 # Calculate overall performance in explaining spatial patterns in mean GPP
 
-legacy_sa <- !is.na(rpi_rast_legacy$potential_gpp_predicted.2000)
-new_sa <- !is.na(rpi_rast$potential_gpp_predicted.2000)
+v1_sa <- !is.na(rpi_rast_v1$potential_gpp_predicted.2000)
+v2_sa <- !is.na(rpi_rast_v2$potential_gpp_predicted.2000)
 
-new_sa_ext <- extend(new_sa, legacy_sa)
-legacy_sa_ext <- extend(legacy_sa, new_sa_ext)
-overlap <- legacy_sa_ext + 2 * new_sa_ext
+v2_sa_ext <- extend(v2_sa, v1_sa)
+v1_sa_ext <- extend(v1_sa, v2_sa_ext)
+overlap <- v1_sa_ext + 2 * v2_sa_ext
 overlap_masked <- mask(overlap, overlap, maskvalues = c(0, NA))
 
 levels(overlap_masked) <- data.frame(ID = 1:3, category = c("RPI v1", "RPI v2", "Both versions"))
