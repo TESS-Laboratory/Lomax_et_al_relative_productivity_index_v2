@@ -168,7 +168,7 @@ progressr::with_progress(
 )
 toc()
 
-write_rds(sp_feature_select, "data/processed/rds/feature_selector_sp.rds")
+# write_rds(sp_feature_select, "data/processed/rds/feature_selector_sp.rds")
 write_rds(sp_feature_set, "data/processed/rds/features_sp.rds")
 rm(sp_feature_select, sp_feature_set)
 gc()
