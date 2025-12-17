@@ -57,10 +57,11 @@ annual_predictions_sp <- YEARS %>%
       model = qrf_model_sp$learner$model,
       threads = CORES) %>%
   rast()
-
 toc()
 
-writeRaster(annual_predictions_sp, "data/processed/raster/outputs/rpi_ea_v2.tif",
+# Join to 
+
+writeRaster(annual_predictions_sp, "data/processed/raster/outputs/rpi_rast_v2.tif",
             overwrite = TRUE)
 
 pushoverr::pushover("RPI raster written to disk")
