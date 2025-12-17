@@ -20,24 +20,14 @@ landpks_lookup <- read_csv("data/raw/csv/LandPKS/landpks_lookup.csv")
 
 # RPI and covariate rasters
 
-rpi_map <- rast("data/processed/raster/rpi_rast_sp.tif")
+rpi_map <- rast("data/processed/raster/outputs/rpi_rast_v2.tif")
 
-static_vars <- rast("data/raw/raster/covariateMaps/staticVars.tif") %>%
+static_vars <- rast("data/raw/raster/covariate_maps/staticVars.tif") %>%
   crop(rpi_map[[1]])
 
-# precipitation <- Sys.glob("data/raw/raster/covariateMaps/dynamicVars*.tif") %>%
-#   map(rast) %>%
-#   map(function(r) subset(r, str_detect(names(r), "precipitation"))) %>%
-#   rast() %>%
-#   crop(rpi_map)
-# 
-# names(precipitation) <- paste0(names(precipitation), ".", 2000:2022)
-# 
-# map <- mean(precipitation)
-# names(map) <- "map"
-
 # Country polygons
-ke_tz <- st_read("data/raw/vector/kenya_tanzania.geojson")
+ke_tz <- st_read("data/raw/vector/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp") %>%
+  filter(NAME %in% c("Kenya", "Tanzania"))
 
 ## 3. Data cleaning and preparation -----
 
@@ -78,14 +68,6 @@ landpks_clean <- landpks_study_area %>%
 
 # A. Record total % cover recorded of all cover types (can include multiple
 # strikes per segment)
-# landpks_total <- landpks_clean %>%
-#   group_by(Name, Latitude, Longitude, ObservationDate_GMT) %>%
-#   summarise(across(
-#     .cols = ends_with("Count"),
-#     .fns = sum,
-#     .names = stringr::str_replace("{col}", "Segment", "")
-#   ))
-
 
 landpks_all_intercepts <- landpks_clean %>%
   select(-ends_with("Count")) %>%
@@ -197,48 +179,9 @@ landpks_grid <- landpks_id_mean %>%
 landpks_locs <- landpks_grid %>%
   filter(group == unique(group)[1])
 
-# landpks_map <- tm_shape(ke_tz, is.main = FALSE) +
-#   tm_polygons(fill = "grey95") +
-#   tm_shape(rpi_map$GPP.2000, is.main = TRUE) +
-#   tm_raster(col.scale = tm_scale_continuous(values = "wheat"),
-#             col.legend = tm_legend(show = FALSE)) +
-#   tm_shape(landpks_locs) +
-#   tm_symbols(
-#     size = 0.3,
-#     fill = "hYear",
-#     fill.scale = tm_scale_discrete(
-#       values = "paired", 
-#       label.format = list(fun=function(x) formatC(x, digits=0, format="d"))),
-#     fill.legend = tm_legend(title = "Year")) +
-#   tm_shape(ke_tz) +
-#   tm_borders() +
-#   tm_layout(frame = FALSE, legend.frame = FALSE)
-# 
-# `tmap`_save(landpks_map, "results/figures/landpks_site_map.png",
-#           height = 16, width = 12, units = "cm", dpi = 250)
-
 # Facet map
 
 rpi_lpks <- rpi_map[[paste0("rpi.", as.character(2014:2022))]]
-
-# landpks_to_map <- landpks_locs %>%
-#   mutate(hYear = paste0("rpi.", hYear))
-# 
-# lpks_facet_map <- tm_shape(rpi_lpks) +
-#   tm_raster(
-#     col.scale = tm_scale_continuous(
-#       values = "viridis", limits = c(0.2, 1.2), outliers.trunc = c(TRUE, TRUE)),
-#     col.legend = tm_legend(show = FALSE)) +
-#   tm_shape(landpks_to_map) +
-#   tm_symbols(col = "white", fill = "red", size = 0.8) +
-#   tm_facets_wrap(by = "hYear", ncol = 3, nrow = 3, labels = 2014:2022) +
-#   tm_shape(ke_tz) +
-#   tm_borders(lwd = 1.5) +
-#   tm_layout(panel.label.bg.color = "white", panel.label.frame = FALSE, frame = FALSE,
-#             panel.labels = 2014:2022, panel.label.size = 12)
-# 
-# tmap_save(lpks_facet_map, "results/figures/landpks_facet_map.png",
-#           width = 16, height = 24, units = "cm", dpi = 250)
 
 # With grid showing density of points
 
