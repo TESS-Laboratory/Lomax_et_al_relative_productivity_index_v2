@@ -15,7 +15,7 @@ source("scripts/load.R")
 
 task_gpp <- read_rds("data/processed/rds/regr_task_gpp.rds")
 
-rf_model_sp <- read_rds("data/processed/rds/rf_tuned_sp.rds")
+rf_model <- read_rds("data/processed/rds/rf_tuned_sp.rds")
 
 # Country polygons for maps
 
@@ -27,58 +27,58 @@ ke_tz <- st_read("data/raw/vector/ne_10m_admin_0_countries/ne_10m_admin_0_countr
 # Measures to evaluate model performance
 measures <- msrs(c("regr.mae", "regr.rmse", "regr.rsq"))
 
-rf_predictions_sp <- rf_model_sp$predict(task_gpp)
+rf_predictions <- rf_model$predict(task_gpp)
 
-rf_predictions_sp$score(measures)
+rf_predictions$score(measures)
 
 ## 4. Visualise model fit ----
 
 # Extract quantile predictions
 
-rf_predictions_sp_qu <- predict(
-  rf_model_sp$learner$model,
+rf_predictions_qu <- predict(
+  rf_model$learner$model,
   task_gpp$data(),
   type = "quantiles",
   quantiles = 0.9
 )
 
 data_with_quantiles <- task_gpp$data() %>%
-  bind_cols(rf_predictions_sp_qu$predictions) %>%
+  bind_cols(rf_predictions_qu$predictions) %>%
   rename(quantile_pred = "quantile= 0.9") %>%
   mutate(across(.cols = c("GPP", starts_with("quantile")), .fns = ~ .x / 1000))
 
 # Plot distribution of model residuals (using 0.9 quantile) 
 density_breaks <- c(1, 10, 100, 1000, 10000)
 
-density_plot_sp <- ggplot(data_with_quantiles, aes(x = quantile_pred, y = GPP)) +
+density_plot <- ggplot(data_with_quantiles, aes(x = quantile_pred, y = GPP)) +
   geom_hex(bins = 60) +
   scale_fill_viridis_c(direction = 1, trans = "log", breaks = density_breaks) +
   geom_abline(slope = seq(0.2, 1, 0.2), intercept = 0, colour = "grey", lwd = 0.8, linetype = "longdash") +
   geom_abline(slope = 1, intercept = 0, colour = "grey", lwd = 1.6) +
   theme_classic() +
-  theme(legend.position = c(0.18, 0.75), legend.key.height = unit(1.5, "cm"),
+  theme(legend.key.height = unit(1.5, "cm"),
         axis.title = element_text(size = 24),
         axis.text = element_text(size = 16),
         legend.title = element_text(size = 20),
         legend.text = element_text(size = 16),
         legend.background = element_rect(fill = "transparent")) +
-  xlim(0, 16) +
-  ylim(0, 16) +
+  xlim(-0.1, 16) +
+  ylim(-0.1, 16) +
   labs(x = expression(atop("Potential GPP", (g~C~m^-2~yr^-1))),
        y = expression(atop("Actual GPP", (g~C~m^-2~yr^-1))),
        fill = "Number of points")
 
 ggsave(
-  "results/figures/density_plot_sp.png",
-  density_plot_sp,
-  width = 24, height = 24, units = "cm", dpi = 300
+  "results/figures/density_plot.png",
+  density_plot,
+  width = 26, height = 20, units = "cm", dpi = 300
 )
 
 ## 5. Variable importance ----
 
 # Variable importance
 
-importance_sp <- rf_model_sp$learner$importance()
+importance <- rf_model$learner$importance()
 
 static_vars <- c(
   "pptMean",
@@ -112,13 +112,13 @@ var_labels <- c(
 
 var_labels_df <- data.frame(variable = names(var_labels), label = unname(var_labels))
 
-importance_df <- tibble(variable = names(importance_sp)) %>%
-  mutate(importance_sp = importance_sp[variable],
+importance_df <- tibble(variable = names(importance)) %>%
+  mutate(importance = importance[variable],
          type = ifelse(variable %in% static_vars, "Static", "Annual")) %>%
   left_join(var_labels_df)
 
 importance_plot <- importance_df %>%
-  mutate(label = reorder(label, importance_sp)) %>%
+  mutate(label = reorder(label, importance)) %>%
   pivot_longer(starts_with("importance")) %>%
   ggplot(aes(x = value, y = label, colour = type)) +
   geom_point(size = 2) +
@@ -181,7 +181,7 @@ gpp_pred_v1 <- subset(rpi_rast_v1_crop, str_detect(names(rpi_rast_v1_crop), rege
 restrend <- rast("data/processed/raster/outputs/restrend.tif")
 restrend_crop <- crop(restrend, gpp_actual_v2[[1]], mask = TRUE)[[1:nlyr(gpp_actual_v2)]]
 restrend_preds <- gpp_actual_v2 - restrend_crop
-names(restrend_preds) <- str_replace(names(restrend_resids), "resid", "pred")
+names(restrend_preds) <- str_replace(names(restrend_crop), "resid", "pred")
 
 perf_v2_temporal <- calc_performance_raster(gpp_actual_v2, gpp_pred_v2)
 perf_v1_temporal <- calc_performance_raster(gpp_actual_v1, gpp_pred_v1)
@@ -191,16 +191,16 @@ perf_restrend_temporal <- calc_performance_raster(gpp_actual_v2, restrend_preds)
 writeRaster(perf_v2_temporal,
             "data/processed/raster/performance/temporal_performance_v2.tif",
             overwrite = TRUE)
-writeRaster(perf_v2_temporal,
-            "data/processed/raster/performance/temporal_performance_old.tif",
+writeRaster(perf_v1_temporal,
+            "data/processed/raster/performance/temporal_performance_v1.tif",
             overwrite = TRUE)
 writeRaster(perf_restrend_temporal,
             "data/processed/raster/performance/temporal_performance_restrend.tif",
             overwrite = TRUE)
 
-# perf_v2_temporal <- rast("data/processed/raster/temporal_performance_v2.tif")
-# perf_v1_temporal <- rast("data/processed/raster/temporal_performancev_v1.tif")
-# perf_restrend_temporal <- rast("data/processed/raster/temporal_performance_restrend.tif")
+perf_v2_temporal <- rast("data/processed/raster/performance/temporal_performance_v2.tif")
+perf_v1_temporal <- rast("data/processed/raster/performance/temporal_performance_v1.tif")
+perf_restrend_temporal <- rast("data/processed/raster/performance/temporal_performance_restrend.tif")
 
 # Plot performance metrics
 
@@ -220,7 +220,7 @@ temporal_performance_hist <- performance_df %>%
   arrange(version) %>%
   ggplot(aes(x = value, fill = version)) +
   geom_density(alpha = 0.6, kernel = "rectangular") +
-  facet_wrap(~measure, ncol = 1, nrow = 3, scales = "free", labeller = measure_labels) +
+  facet_wrap(~measure, ncol = 1, nrow = 2, scales = "free", labeller = measure_labels) +
   theme_bw() +
   scale_fill_brewer(palette = "Set1", labels = c("RPI v1", "RPI v2", "RESTREND")) +
   ggh4x::facetted_pos_scales(x = list(
@@ -231,30 +231,9 @@ temporal_performance_hist <- performance_df %>%
   geom_vline(xintercept = 0, colour = "grey10") +
   labs(x = "Value", y = "Density", fill = "Version")
 
-# temporal_performance_hist_restrend <- performance_df_restrend %>%
-#   filter(measure != "rmse") %>%
-#   mutate(version = ordered(version, levels = c("restrend", "new_full"))) %>%
-#   arrange(version) %>%
-#   ggplot(aes(x = value, fill = version)) +
-#   geom_density(alpha = 0.6, kernel = "rectangular") +
-#   facet_wrap(~measure, ncol = 1, nrow = 3, scales = "free", labeller = measure_labels) +
-#   theme_bw() +
-#   scale_fill_brewer(palette = "Set1", labels = c("RESTREND", "RPI v2")) +
-#   ggh4x::facetted_pos_scales(x = list(
-#     measure == "mae" ~ scale_x_continuous(limits = c(0, 1500)),
-#     measure == "rmse" ~ scale_x_continuous(limits = c(0, 1500)),
-#     measure == "rsq" ~ scale_x_continuous(limits = c(-0.5, 1))
-#   )) +
-#   geom_vline(xintercept = 0, colour = "grey10") +
-#   labs(x = "Value", y = "Density", fill = "Method")
-
-ggsave("results/figures/rpi_version_performance_hist.png",
+ggsave("results/figures/temporal_performance_hist.png",
        temporal_performance_hist,
        width = 16, height = 16, units = "cm", dpi = 250)
-
-# ggsave("results/figures/rpi_restrend_performance_hist.png",
-#        temporal_performance_hist_restrend,
-#        width = 16, height = 16, units = "cm", dpi = 250)
 
 # Calculate overall performance in explaining spatial patterns in mean GPP
 
@@ -275,8 +254,8 @@ fill <- tm_shape(ke_tz, is.main = FALSE) +
 borders <- tm_shape(ke_tz) +
   tm_borders(col = "black")
 
-best_mae <- which.min(c(perf_v1_temporal$mae, perf_v2_temporal$mae, perf_restrend_temporal$mae))
-best_rsq <- which.max(c(perf_v1_temporal$rsq, perf_v2_temporal$rsq, perf_restrend_temporal$rsq))
+best_mae <- which.min(c(perf_restrend_temporal$mae, perf_v1_temporal$mae, perf_v2_temporal$mae))
+best_rsq <- which.max(c(perf_restrend_temporal$rsq, perf_v1_temporal$rsq, perf_v2_temporal$rsq))
 
 generate_performance_map <- function(performance_rast, metric, palette) {
   # Prep data
@@ -337,37 +316,41 @@ generate_performance_map <- function(performance_rast, metric, palette) {
   map
 }
 
-rpi_v1_mae_map <- generate_performance_map(perf_v1_temporal, "mae", "or_rd")
-rpi_v2_mae_map <- generate_performance_map(perf_v2_temporal, "mae", "or_rd")
-restrend_mae_map <- generate_performance_map(perf_restrend_temporal, "mae", "or_rd")
+rpi_v1_mae_map <- generate_performance_map(perf_v1_temporal, "mae", "plasma")
+rpi_v2_mae_map <- generate_performance_map(perf_v2_temporal, "mae", "plasma")
+restrend_mae_map <- generate_performance_map(perf_restrend_temporal, "mae", "plasma")
 rpi_v1_rsq_map <- generate_performance_map(perf_v1_temporal, "rsq", "viridis")
 rpi_v2_rsq_map <- generate_performance_map(perf_v2_temporal, "rsq", "viridis")
-restrend_rsq_map <- generate_performance_map(perf_restrend_temporal, "rsq", "or_rd")
+restrend_rsq_map <- generate_performance_map(perf_restrend_temporal, "rsq", "viridis")
 
 # Plot differences in performance between two methods
+tmap_options(component.autoscale = FALSE)
 
 rpi_mae_diff_map <- fill +
   tm_shape(perf_v2_temporal$mae - perf_v1_temporal$mae, is.main = TRUE) +
   tm_raster(
     col.scale = tm_scale_continuous(
-      limits = c(-300, 300), values = "-pu_or", midpoint = 0, outliers.trunc = c(TRUE, TRUE)
+      limits = c(-300, 300), values = "-rd_yl_bu", midpoint = 0, outliers.trunc = c(TRUE, TRUE),
+      ticks = c(-300, 0, 300)
     ),
     col.legend = tm_legend(
-      reverse = TRUE, title = expression(atop("MAE difference", (g~C~m^-2~yr^-1))), frame = FALSE
+      title = expression("MAE difference (g C "~m^-2~yr^-1~")"), frame = FALSE,
+      width = 12, orientation = "landscape", title.size = 1, text.size = 0.8
     )
   ) +
   borders +
   tm_layout(frame = FALSE, asp = 3/4)
-  
 
 rpi_rsq_diff_map <- fill +
   tm_shape(perf_v2_temporal$rsq - perf_v1_temporal$rsq, is.main = TRUE) +
   tm_raster(
     col.scale = tm_scale_continuous(
-      limits = c(-0.75, 0.75), values = "pu_or", midpoint = 0, outliers.trunc = c(TRUE, TRUE)
+      limits = c(-0.75, 0.75), values = "rd_yl_bu", midpoint = 0, outliers.trunc = c(TRUE, TRUE),
+      n = 3
     ),
     col.legend = tm_legend(
-      reverse = TRUE, title = expression(R^2~difference), frame = FALSE
+      orientation = "landscape", title = expression(R^2~difference),
+      frame = FALSE, width = 12, title.size = 1, text.size = 0.8
     )
   ) +
   borders +
@@ -376,32 +359,36 @@ rpi_rsq_diff_map <- fill +
 # Best method maps
 
 best_mae_map <- fill +
-  tm_shape(best_mae) +
+  tm_shape(best_mae, is.main = TRUE) +
   tm_raster(
     col.scale = tm_scale_discrete(
       ticks = c(1,2,3),
-      values = "paired",
-      labels = c("RPI v1", "RPI v2", "RESTREND")
+      values = c("#ff7152", "#7152ff", "#52ff71"),
+      labels = c("RESTREND", "RPI v1", "RPI v2")
     ),
     col.legend = tm_legend(
       title = "Lowest MAE",
-      frame = FALSE
+      frame = FALSE,
+      orientation = "landscape",
+      width = 12, title.size = 1, text.size = 1
     )
   ) +
   borders +
   tm_layout(frame = FALSE, asp = 3/4)
 
 best_rsq_map <- fill +
-  tm_shape(best_rsq) +
+  tm_shape(best_rsq, is.main = TRUE) +
   tm_raster(
     col.scale = tm_scale_discrete(
       ticks = c(1,2,3),
-      values = "paired",
-      labels = c("RPI v1", "RPI v2", "RESTREND")
+      values = c("#ff7152", "#7152ff", "#52ff71"),
+      labels = c("RESTREND", "RPI v1", "RPI v2")
     ),
     col.legend = tm_legend(
       title = expression("Highest"~R^2),
-      frame = FALSE
+      frame = FALSE,
+      orientation = "landscape",
+      width = 12, title.size = 1, text.size = 1
     )
   ) +
   borders +
@@ -437,33 +424,35 @@ temporal_performance_hist_mae <- performance_df %>%
   mutate(version = ordered(version, levels = c("restrend", "v1", "v2"))) %>%
   arrange(version) %>%
   ggplot(aes(x = value, fill = version)) +
-  geom_density(alpha = 0.4, kernel = "rectangular") +
+  geom_density(alpha = 0.5,n = 2000, kernel = "gaussian") +
   # facet_wrap(~measure, ncol = 1, nrow = 3, scales = "free", labeller = measure_labels) +
   theme_classic() +
   # scale_fill_manual(values = c("orange3", "purple3"), labels = c("RPI v1", "RPI v2", "RESTREND")) +
-  scale_fill_brewer(palette = "Dark2", labels = c("RESTREND", "RPI v1", "RPI v2")) +
+  scale_fill_manual(values = c("#ff7152", "#7152ff", "#52ff71"), labels = c("RESTREND", "RPI v1", "RPI v2")) +
   coord_cartesian(xlim = c(0, 1500)) +
   geom_vline(xintercept = 0, colour = "grey10") +
-  labs(x = expression(MAE~"("~g~C~m^-2~yr^-1~")"), y = "", fill = "Version")
+  labs(x = expression(MAE~"("~g~C~m^-2~yr^-1~")"), y = "", fill = "Version") +
+  theme(legend.position = "bottom")
 
 temporal_performance_hist_rsq <- performance_df %>%
   filter(measure == "rsq") %>%
   mutate(version = ordered(version, levels = c("restrend", "v1", "v2"))) %>%
   arrange(version) %>%
   ggplot(aes(x = value, fill = version)) +
-  geom_density(alpha = 0.4, kernel = "rectangular") +
+  geom_density(alpha = 0.5, n = 2000, kernel = "gaussian") +
   # facet_wrap(~measure, ncol = 1, nrow = 3, scales = "free", labeller = measure_labels) +
   theme_classic() +
   # scale_fill_manual(values = c("orange3", "purple3"), labels = c("RPI v1", "RPI v2", "RESTREND")) +
-  scale_fill_brewer(palette = "Dark2", labels = c("RESTREND", "RPI v1", "RPI v2")) +
+  scale_fill_manual(values = c("#ff7152", "#7152ff", "#52ff71"), labels = c("RESTREND", "RPI v1", "RPI v2")) +
   coord_cartesian(xlim = c(-0.5, 1)) +
   geom_vline(xintercept = 0, colour = "grey10") +
-  labs(x = expression(R^2), y = "", fill = "Version")
+  labs(x = expression(R^2), y = "", fill = "Version") +
+  theme(legend.position = "bottom")
 
 ggsave("results/figures/perf_hist_mae.png", temporal_performance_hist_mae,
-       width = 12, height = 5, units = "cm", dpi = 300)
+       width = 10, height = 8, units = "cm", dpi = 300)
 ggsave("results/figures/perf_hist_rsq.png", temporal_performance_hist_rsq,
-       width = 12, height = 5, units = "cm", dpi = 300)
+       width = 10, height = 8, units = "cm", dpi = 300)
 
 ## Plot overlapping study area
 
@@ -490,3 +479,37 @@ shared_study_area_map <- fill +
   ) +
   borders
 
+
+
+
+
+
+###
+
+for (i in 1:4) {
+  
+  rpi_map <- tm_shape(ke_tz, is.main = FALSE) +
+    tm_fill("grey95") +
+    tm_shape(rpi[[i]], is.main = TRUE) +
+    tm_raster(col.scale = tm_scale_continuous(values = "viridis", limits = c(0.2, 1.2), outliers.trunc = c(TRUE, TRUE)),
+              col.legend = tm_legend(show = FALSE)) +
+    tm_shape(ke_tz) +
+    tm_borders(col = "black", lwd = 3) +
+    tm_layout(frame = FALSE, asp = 3/4, bg.color = "transparent")
+  
+  tmap_save(rpi_map, paste0("results/figures/rpi_", i, ".png"), dpi = 300, width = 12, height = 12, units = "cm", bg = "transparent")
+}
+
+for (i in 1:4) {
+  
+  pot_map <- tm_shape(ke_tz, is.main = FALSE) +
+    tm_fill("grey95") +
+    tm_shape(potential_gpp[[i]], is.main = TRUE) +
+    tm_raster(col.scale = tm_scale_continuous(values = "greens", limits = c(0, 6000), outliers.trunc = c(TRUE, TRUE)),
+              col.legend = tm_legend(show = FALSE)) +
+    tm_shape(ke_tz) +
+    tm_borders(col = "black", lwd = 3) +
+    tm_layout(frame = FALSE, asp = 3/4, bg.color = "transparent")
+  
+  tmap_save(pot_map, paste0("results/figures/pot_gpp_", i, ".png"), dpi = 300, width = 12, height = 12, units = "cm", bg = "transparent")
+}
