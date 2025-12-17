@@ -29,10 +29,10 @@ lc_labels <- read_csv("data/raw/raster/hunter2020/hunter_raster_key.csv")
 lc_points_labeled <- left_join(lc_points, lc_labels)
 
 # Kenya/Tanzania polygon
-ke_tz <- st_read("data/raw/vector/kenya_tanzania.geojson")
-ke_tz$ADM0_NAME[ke_tz$ADM0_CODE == 257] <- "Tanzania"
+ke_tz <- st_read("data/raw/vector/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp") %>%
+  filter(NAME %in% c("Kenya", "Tanzania"))
 
-ke_buffer <- filter(ke_tz, ADM0_NAME == "Kenya") %>%
+ke_buffer <- filter(ke_tz, NAME == "Kenya") %>%
   st_buffer(dist = set_units(50, "km"))
 
 # Plot land cover map
@@ -51,7 +51,7 @@ lc_tmap <- tm_shape(lc_map) +
 inset_map <- tm_shape(ke_buffer) +
   tm_shape(ke_tz) +
   tm_borders(lwd = 2) +
-  tm_text("ADM0_NAME") +
+  tm_text("NAME") +
   tm_shape(st_bbox(lc_map) %>% st_as_sfc()) +
   tm_borders(col = "red", lwd = 2) +
   tm_layout(bg.color = "white")

@@ -11,17 +11,17 @@ source("scripts/load.R")
 
 # RPI and covariate rasters
 
-rpi_map <- rast("data/processed/raster/rpi_rast_sp.tif")
+rpi_map <- rast("data/processed/raster/outputs/rpi_rast_v2.tif")
 
 # Tree cover raster
 
-tc <- rast("data/raw/raster/covariateMaps/staticVars.tif") %>%
+tc <- rast("data/raw/raster/covariate_maps/staticVars.tif") %>%
   subset("treeCover") %>%
   crop(rpi_map)
 
 # Country polygons
-kenya <- st_read("data/raw/vector/kenya_tanzania.geojson") %>%
-  filter(ADM0_NAME == "Kenya")
+kenya <- st_read("data/raw/vector/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp") %>%
+  filter(NAME =="Kenya")
 
 # Protected areas
 
@@ -82,7 +82,7 @@ pa_map <- tm_shape(kenya) +
   tm_layout(frame = FALSE)
 
 tmap_save(pa_map, "results/figures/np_map_kenya.png",
-          height = 16, width = 16, units = "cm", dpi = 250)
+          height = 16, width = 16, units = "cm", dpi = 500)
 
 ## 4. Extract GPP and RPI time series for all parks ----
 
